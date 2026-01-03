@@ -1,8 +1,8 @@
 {
-    "name": "stock-master-backend",
+    "name": "fingerprint-attendance-backend",
     "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
+    "description": "Event-sourced fingerprint attendance system for college with MQTT and real-time updates",
+    "main": "src/server.js",
     "scripts": {
         "dev": "cross-env NODE_ENV=development nodemon src/server.js",
         "start": "cross-env NODE_ENV=production node src/server.js",
@@ -20,14 +20,21 @@
         "prettier": "^3.6.2"
     },
     "dependencies": {
+        "bcryptjs": "^3.0.3",
         "cors": "^2.8.5",
         "cross-env": "^10.1.0",
+        "dayjs": "^1.11.19",
         "dotenv-flow": "^4.1.0",
         "express": "^5.1.0",
         "helmet": "^8.1.0",
         "husky": "^9.1.7",
+        "joi": "^18.0.2",
+        "jsonwebtoken": "^9.0.3",
         "mongoose": "^9.0.0",
+        "mqtt": "^5.14.1",
         "rate-limiter-flexible": "^8.2.1",
+        "socket.io": "^4.8.3",
+        "uuid": "^13.0.0",
         "winston": "^3.18.3"
     }
 }
