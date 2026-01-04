@@ -58,8 +58,7 @@ const userSchema = new mongoose.Schema(
         },
         fingerprintId: {
             type: Number,
-            default: null,
-            sparse: true
+            default: null
         },
         deviceId: {
             type: String,
@@ -78,6 +77,18 @@ const userSchema = new mongoose.Schema(
 // Indexes
 userSchema.index({ role: 1 });
 userSchema.index({ department: 1, year: 1, section: 1 }); // For class queries
+// Compound unique index: fingerprintId is unique per device (not globally unique)
+userSchema.index(
+    { fingerprintId: 1, deviceId: 1 },
+    {
+        unique: true,
+        sparse: true, // Allow null values
+        partialFilterExpression: {
+            fingerprintId: { $ne: null },
+            deviceId: { $ne: null }
+        }
+    }
+);
 
 const User = mongoose.model('User', userSchema);
 

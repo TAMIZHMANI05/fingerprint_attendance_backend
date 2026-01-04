@@ -110,7 +110,19 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
         const scanTime = dayjs(timestamp);
         const date = scanTime.format('YYYY-MM-DD');
 
-        // 1. Resolve student from fingerprintId
+        // 1. Validate device exists and is active
+        const Device = require('../device/device.model');
+        const device = await Device.findOne({ deviceId, isActive: true });
+
+        if (!device) {
+            return {
+                success: false,
+                reason: 'INVALID_DEVICE',
+                message: 'Device not found or inactive'
+            };
+        }
+
+        // 2. Resolve student from fingerprintId + deviceId (device-scoped)
         const student = await User.findOne({
             fingerprintId,
             deviceId,
@@ -123,11 +135,15 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
             return {
                 success: false,
                 reason: 'INVALID_STUDENT',
-                message: 'Fingerprint not registered or inactive'
+                message: 'Fingerprint not registered or inactive',
+                device: {
+                    deviceId: device.deviceId,
+                    name: device.name
+                }
             };
         }
 
-        // 2. Determine session
+        // 3. Determine session
         const session = determineSession(timestamp);
 
         if (!session) {
@@ -136,6 +152,10 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
                 success: false,
                 reason: 'OUTSIDE_WINDOW',
                 message: `Scan outside valid time windows (Morning: ${SESSION_WINDOWS.morning.start}-${SESSION_WINDOWS.morning.end}, Afternoon: ${SESSION_WINDOWS.afternoon.start}-${SESSION_WINDOWS.afternoon.end})`,
+                device: {
+                    deviceId: device.deviceId,
+                    name: device.name
+                },
                 student: {
                     studentId: student.studentId,
                     name: student.name
@@ -143,7 +163,7 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
             };
         }
 
-        // 3. Determine action (IN or OUT)
+        // 4. Determine action (IN or OUT)
         const action = await determineAction(student.studentId, date, session);
 
         if (!action) {
@@ -152,6 +172,10 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
                 success: false,
                 reason: 'SESSION_COMPLETED',
                 message: `${session} session already completed`,
+                device: {
+                    deviceId: device.deviceId,
+                    name: device.name
+                },
                 student: {
                     studentId: student.studentId,
                     name: student.name
@@ -160,7 +184,7 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
             };
         }
 
-        // 4. Check for duplicate (any scan within 5 minutes)
+        // 5. Check for duplicate scan (within 5 minutes)
         const duplicate = await isDuplicate(student.studentId, date, session, timestamp);
 
         if (duplicate) {
@@ -169,6 +193,10 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
                 success: false,
                 reason: 'DUPLICATE',
                 message: `Duplicate scan detected (within 5 minutes)`,
+                device: {
+                    deviceId: device.deviceId,
+                    name: device.name
+                },
                 student: {
                     studentId: student.studentId,
                     name: student.name
@@ -178,7 +206,7 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
             };
         }
 
-        // 5. All validations passed - create event
+        // 6. All validations passed - create event
         const event = await AttendanceEvent.create({
             studentId: student.studentId,
             fingerprintId,
@@ -192,6 +220,10 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
         return {
             success: true,
             message: `${action} recorded for ${session} session`,
+            device: {
+                deviceId: device.deviceId,
+                name: device.name
+            },
             student: {
                 studentId: student.studentId,
                 name: student.name,
