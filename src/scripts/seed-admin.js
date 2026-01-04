@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
-const User = require('../src/modules/user/user.model');
-const databaseService = require('../src/configs/database');
-const logger = require('../src/utils/logger');
+const User = require('../modules/user/user.model');
+const databaseService = require('../configs/database');
+const logger = require('../utils/logger');
 
 const seedAdmins = async () => {
     try {
