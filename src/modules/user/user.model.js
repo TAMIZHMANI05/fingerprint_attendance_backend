@@ -77,7 +77,6 @@ const userSchema = new mongoose.Schema(
 
 // Indexes
 userSchema.index({ role: 1 });
-userSchema.index({ deviceId: 1, fingerprintId: 1 }, { unique: true, sparse: true }); // Fingerprint uniqueness per device
 userSchema.index({ department: 1, year: 1, section: 1 }); // For class queries
 
 const User = mongoose.model('User', userSchema);

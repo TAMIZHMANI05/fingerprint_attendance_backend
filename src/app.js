@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const router = require('./route/apiRouter');
+const router = require('./router/apiRouter');
 const globalErrorHandler = require('./middlewares/globalErrorHandler');
 const responseMessage = require('./constants/responseMessage');
 const httpError = require('./utils/httpError');
