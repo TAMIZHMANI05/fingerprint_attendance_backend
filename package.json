@@ -6,6 +6,7 @@
     "scripts": {
         "dev": "cross-env NODE_ENV=development nodemon src/server.js",
         "start": "cross-env NODE_ENV=production node src/server.js",
+        "seed:admin": "cross-env NODE_ENV=development node src/scripts/seed-admin.js",
         "format:check": "prettier . --check",
         "format:fix": "prettier . --write",
         "prepare": "husky"
@@ -38,3 +39,4 @@
         "winston": "^3.18.3"
     }
 }
+

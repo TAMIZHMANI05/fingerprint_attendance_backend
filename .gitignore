@@ -1,3 +1,5 @@
 node_modules
 .env.development
 .env.production
+Fingerprint_Attendance_Dev.postman_environment.json
+Fingerprint_Attendance.postman_collection.json
