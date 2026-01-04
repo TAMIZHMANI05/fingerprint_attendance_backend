@@ -1,7 +1,7 @@
 const dayjs = require('dayjs');
 const AttendanceEvent = require('./attendance-event.model');
-const User = require('../user/user.model');
 const { processAttendanceEvent, createManualEntry } = require('./attendance.service');
+const { generateAttendanceReport } = require('./attendance.report');
 const httpResponse = require('../../utils/httpResponse');
 const httpError = require('../../utils/httpError');
 const { emitAttendanceEvent, emitAttendanceRejection } = require('../../utils/socketEmitter');
@@ -114,93 +114,32 @@ const getEvents = async (req, res, next) => {
 };
 
 /**
- * Get today's attendance for a student
- * GET /attendance/today/:studentId
+ * Universal attendance report endpoint
+ * GET /attendance/report
+ * Query params:
+ *   - studentId: Get student report (with optional startDate, endDate, or date for single day)
+ *   - groupBy=class: Get class-wise report (with optional date, defaults to today)
+ *   - date: Get daily report (with optional department, year, section filters)
+ *   - Default (no params): Today's daily report
  */
-const getTodayAttendance = async (req, res, next) => {
+const getAttendanceReport = async (req, res, next) => {
     try {
-        const { studentId } = req.params;
+        const { studentId, date, startDate, endDate, department, year, section, groupBy } = req.query;
 
-        // Role-based access control: students can only see their own attendance
-        if (req.user.role === 'student' && req.user.studentId !== studentId.toUpperCase()) {
-            return httpError(next, new Error('Access denied: You can only view your own attendance'), req, 403);
+        // Role-based access control
+        if (req.user.role === 'student') {
+            // Students can only see their own report
+            if (!studentId || req.user.studentId !== studentId.toUpperCase()) {
+                return httpError(next, new Error('Access denied: Students can only view their own attendance'), req, 403);
+            }
+        } else if (req.user.role === 'teacher' || req.user.role === 'admin') {
+            // Teachers/admins can see all reports
+            // No restrictions
         }
 
-        const today = dayjs().format('YYYY-MM-DD');
+        const report = await generateAttendanceReport(req.query);
 
-        const events = await AttendanceEvent.find({
-            studentId: studentId.toUpperCase(),
-            date: today
-        }).sort({ timestamp: 1 });
-
-        // Group by session
-        const morning = events.filter((e) => e.session === 'morning');
-        const afternoon = events.filter((e) => e.session === 'afternoon');
-
-        httpResponse(req, res, 200, "Today's attendance retrieved", {
-            date: today,
-            morning: {
-                events: morning,
-                hasIN: morning.some((e) => e.action === 'IN'),
-                hasOUT: morning.some((e) => e.action === 'OUT'),
-                complete: morning.some((e) => e.action === 'IN') && morning.some((e) => e.action === 'OUT')
-            },
-            afternoon: {
-                events: afternoon,
-                hasIN: afternoon.some((e) => e.action === 'IN'),
-                hasOUT: afternoon.some((e) => e.action === 'OUT'),
-                complete: afternoon.some((e) => e.action === 'IN') && afternoon.some((e) => e.action === 'OUT')
-            }
-        });
-    } catch (err) {
-        httpError(next, err, req, 500);
-    }
-};
-
-/**
- * Get daily attendance for a date
- * GET /attendance/daily/:date
- * Returns attendance status for all students
- */
-const getDailyAttendance = async (req, res, next) => {
-    try {
-        const { date } = req.params;
-
-        const events = await AttendanceEvent.find({ date }).sort({ timestamp: 1 });
-
-        // Group by student
-        const studentMap = {};
-
-        events.forEach((event) => {
-            if (!studentMap[event.studentId]) {
-                studentMap[event.studentId] = {
-                    studentId: event.studentId,
-                    morning: { IN: null, OUT: null },
-                    afternoon: { IN: null, OUT: null }
-                };
-            }
-
-            if (event.session === 'morning') {
-                studentMap[event.studentId].morning[event.action] = event.timestamp;
-            } else if (event.session === 'afternoon') {
-                studentMap[event.studentId].afternoon[event.action] = event.timestamp;
-            }
-        });
-
-        // Calculate attendance status
-        const attendance = Object.values(studentMap).map((student) => ({
-            ...student,
-            morningPresent: !!(student.morning.IN && student.morning.OUT),
-            afternoonPresent: !!(student.afternoon.IN && student.afternoon.OUT),
-            present: !!(student.morning.IN && student.morning.OUT && student.afternoon.IN && student.afternoon.OUT)
-        }));
-
-        httpResponse(req, res, 200, 'Daily attendance retrieved', {
-            date,
-            attendance,
-            totalStudents: attendance.length,
-            presentCount: attendance.filter((s) => s.present).length
-        });
+        httpResponse(req, res, 200, 'Attendance report generated', report);
     } catch (err) {
         httpError(next, err, req, 500);
     }
@@ -210,7 +149,6 @@ module.exports = {
     processAttendance,
     manualEntry,
     getEvents,
-    getTodayAttendance,
-    getDailyAttendance
+    getAttendanceReport
 };
 
