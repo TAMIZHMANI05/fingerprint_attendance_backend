@@ -74,21 +74,23 @@ const determineAction = async (studentId, date, session) => {
 };
 
 /**
- * Check for duplicate scan
+ * Check for duplicate scan (any scan within 5 minutes, regardless of action)
  * @param {string} studentId
  * @param {string} date
  * @param {string} session
- * @param {string} action
+ * @param {Date} currentTimestamp - Current scan timestamp
  * @returns {Promise<boolean>} - True if duplicate exists
  */
-const isDuplicate = async (studentId, date, session, action) => {
+const isDuplicate = async (studentId, date, session, currentTimestamp) => {
+    const fiveMinutesAgo = dayjs(currentTimestamp).subtract(5, 'minute').toDate();
+
     const recentEvent = await AttendanceEvent.findOne({
         studentId,
         date,
         session,
-        action,
         timestamp: {
-            $gte: dayjs().subtract(5, 'minute').toDate() // Within last 5 minutes
+            $gte: fiveMinutesAgo,
+            $lt: currentTimestamp // Must be before current scan
         }
     });
 
@@ -158,15 +160,15 @@ const processAttendanceEvent = async ({ fingerprintId, deviceId, timestamp = new
             };
         }
 
-        // 4. Check for duplicate (same action within 5 minutes)
-        const duplicate = await isDuplicate(student.studentId, date, session, action);
+        // 4. Check for duplicate (any scan within 5 minutes)
+        const duplicate = await isDuplicate(student.studentId, date, session, timestamp);
 
         if (duplicate) {
             // Duplicate scan - don't write to DB
             return {
                 success: false,
                 reason: 'DUPLICATE',
-                message: `Duplicate ${action} scan detected (within 5 minutes)`,
+                message: `Duplicate scan detected (within 5 minutes)`,
                 student: {
                     studentId: student.studentId,
                     name: student.name
