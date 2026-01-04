@@ -46,6 +46,18 @@ app.use(globalErrorHandler);
 
 // Socket.IO setup function (simplified for kiosk)
 const setupSocketIO = (io) => {
+    // Authenticate kiosk using API key
+    io.use((socket, next) => {
+        const apiKey = socket.handshake.headers['x-api-key'];
+        
+        if (apiKey === require('./configs/config').KIOSK_API_KEY) {
+            console.log('✓ Kiosk authenticated via Socket.IO');
+            next();
+        } else {
+            console.log('✗ Unauthorized Socket.IO connection attempt');
+            next(new Error('Invalid API key'));
+        }
+    });
     // Initialize socket emitter utility
     initializeSocket(io);
 
