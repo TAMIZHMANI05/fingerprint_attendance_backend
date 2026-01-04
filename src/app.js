@@ -7,6 +7,7 @@ const httpError = require('./utils/httpError');
 const helmet = require('helmet');
 const cors = require('cors');
 const config = require('./configs/config');
+const { initializeSocket } = require('./utils/socketEmitter');
 
 const app = express();
 
@@ -43,4 +44,23 @@ app.use((req, _res, next) => {
 // Global Error Handler Middleware
 app.use(globalErrorHandler);
 
-module.exports = app;
+// Socket.IO setup function (simplified for kiosk)
+const setupSocketIO = (io) => {
+    // Initialize socket emitter utility
+    initializeSocket(io);
+
+    // Store io instance for use in controllers
+    app.set('io', io);
+
+    io.on('connection', (socket) => {
+        console.log(`✓ Kiosk display connected: ${socket.id}`);
+
+        // Handle client disconnection
+        socket.on('disconnect', () => {
+            console.log(`✗ Kiosk display disconnected: ${socket.id}`);
+        });
+    });
+};
+
+module.exports = { app, setupSocketIO };
+

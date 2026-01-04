@@ -1,9 +1,25 @@
-const app = require('./app');
+const http = require('http');
+const { Server } = require('socket.io');
+const { app, setupSocketIO } = require('./app');
 const config = require('./configs/config');
 const logger = require('./utils/logger');
 const { initRateLimiter } = require('./configs/rateLimiter');
-const server = app.listen(config.PORT);
 const databaseService = require('./configs/database');
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+const io = new Server(server, {
+    cors: {
+        origin: config.CLIENT_URL,
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
+});
+
+// Setup Socket.IO handlers
+setupSocketIO(io);
 
 (async () => {
     try {
@@ -16,6 +32,9 @@ const databaseService = require('./configs/database');
                 CONNECTION_NAME: connection.name
             }
         });
+
+        // Start server
+        server.listen(config.PORT);
 
         logger.info(`APPLICATION_STARTED`, {
             meta: {
@@ -35,3 +54,4 @@ const databaseService = require('./configs/database');
         });
     }
 })();
+

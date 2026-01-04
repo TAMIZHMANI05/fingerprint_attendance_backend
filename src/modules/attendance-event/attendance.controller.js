@@ -4,6 +4,7 @@ const User = require('../user/user.model');
 const { processAttendanceEvent, createManualEntry } = require('./attendance.service');
 const httpResponse = require('../../utils/httpResponse');
 const httpError = require('../../utils/httpError');
+const { emitAttendanceEvent, emitAttendanceRejection } = require('../../utils/socketEmitter');
 
 /**
  * Process attendance (simulate fingerprint scan for testing)
@@ -24,9 +25,12 @@ const processAttendance = async (req, res, next) => {
             timestamp: timestamp ? new Date(timestamp) : new Date()
         });
 
+        // Emit real-time event
         if (result.success) {
+            emitAttendanceEvent(result);
             return httpResponse(req, res, 201, result.message, result);
         } else {
+            emitAttendanceRejection(result);
             return httpResponse(req, res, 400, result.message, result);
         }
     } catch (err) {
@@ -54,6 +58,9 @@ const manualEntry = async (req, res, next) => {
             timestamp: new Date(timestamp),
             deviceId
         });
+
+        // Emit real-time manual entry event
+        emitAttendanceEvent(result);
 
         httpResponse(req, res, 201, result.message, result);
     } catch (err) {
