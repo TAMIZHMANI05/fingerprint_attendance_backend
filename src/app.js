@@ -48,7 +48,7 @@ app.use(globalErrorHandler);
 const setupSocketIO = (io) => {
     // Authenticate kiosk using API key
     io.use((socket, next) => {
-        const apiKey = socket.handshake.headers['x-api-key'];
+        const apiKey = socket.handshake.auth['x-api-key'];
 
         if (apiKey === require('./configs/config').KIOSK_API_KEY) {
             console.log('✓ Kiosk authenticated via Socket.IO');

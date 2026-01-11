@@ -32,13 +32,13 @@ const emitAttendanceEvent = (data) => {
     try {
         const io = getIO();
 
-        if (!data.deviceId) {
+        if (!data.device) {
             console.error('✗ Cannot emit event: deviceId missing');
             return;
         }
 
         // Emit to device-specific room
-        const roomName = `device:${data.deviceId}`;
+        const roomName = `device:${data.device.deviceId}`;
         io.to(roomName).emit('attendance:event', data);
         console.log('✓ Real-time attendance event emitted:', {
             room: roomName,
@@ -86,13 +86,13 @@ const emitManualEntry = (data) => {
     try {
         const io = getIO();
 
-        if (!data.deviceId) {
+        if (!data.device.deviceId) {
             console.error('✗ Cannot emit manual entry: deviceId missing');
             return;
         }
 
         // Emit to device-specific room
-        const roomName = `device:${data.deviceId}`;
+        const roomName = `device:${data.device.deviceId}`;
         io.to(roomName).emit('attendance:event', data);
 
         console.log('✓ Manual entry event emitted:', {
