@@ -25,16 +25,23 @@ const getIO = () => {
 };
 
 /**
- * Emit attendance event to all connected clients (kiosk display)
- * @param {Object} data - Attendance event data
+ * Emit attendance event to device-specific room (kiosk display)
+ * @param {Object} data - Attendance event data (must include deviceId)
  */
 const emitAttendanceEvent = (data) => {
     try {
         const io = getIO();
 
-        // Emit to all clients (kiosk display)
-        io.emit('attendance:event', data);
+        if (!data.deviceId) {
+            console.error('✗ Cannot emit event: deviceId missing');
+            return;
+        }
+
+        // Emit to device-specific room
+        const roomName = `device:${data.deviceId}`;
+        io.to(roomName).emit('attendance:event', data);
         console.log('✓ Real-time attendance event emitted:', {
+            room: roomName,
             studentId: data.student?.studentId,
             action: data.action,
             session: data.session
@@ -45,17 +52,24 @@ const emitAttendanceEvent = (data) => {
 };
 
 /**
- * Emit attendance rejection event (kiosk display)
- * @param {Object} data - Rejection data
+ * Emit attendance rejection event to device-specific room (kiosk display)
+ * @param {Object} data - Rejection data (must include deviceId)
  */
 const emitAttendanceRejection = (data) => {
     try {
-        const io = getIO();
+        const io = getIO();        
 
-        // Emit to all clients (kiosk display)
-        io.emit('attendance:event', data);
+        if (!data.device) {
+            console.error('✗ Cannot emit rejection: deviceId missing');
+            return;
+        }
+
+        // Emit to device-specific room
+        const roomName = `device:${data.device.deviceId}`;
+        io.to(roomName).emit('attendance:event', data);
 
         console.log('✓ Real-time rejection event emitted:', {
+            room: roomName,
             studentId: data.student?.studentId,
             reason: data.reason
         });
@@ -65,17 +79,24 @@ const emitAttendanceRejection = (data) => {
 };
 
 /**
- * Emit manual attendance entry event (kiosk display)
- * @param {Object} data - Manual entry data
+ * Emit manual attendance entry event to device-specific room (kiosk display)
+ * @param {Object} data - Manual entry data (must include deviceId)
  */
 const emitManualEntry = (data) => {
     try {
         const io = getIO();
 
-        // Emit to all clients (kiosk display)
-        io.emit('attendance:event', data);
+        if (!data.deviceId) {
+            console.error('✗ Cannot emit manual entry: deviceId missing');
+            return;
+        }
+
+        // Emit to device-specific room
+        const roomName = `device:${data.deviceId}`;
+        io.to(roomName).emit('attendance:event', data);
 
         console.log('✓ Manual entry event emitted:', {
+            room: roomName,
             studentId: data.studentId,
             action: data.action,
             session: data.session

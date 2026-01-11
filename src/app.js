@@ -49,7 +49,7 @@ const setupSocketIO = (io) => {
     // Authenticate kiosk using API key
     io.use((socket, next) => {
         const apiKey = socket.handshake.headers['x-api-key'];
-        
+
         if (apiKey === require('./configs/config').KIOSK_API_KEY) {
             console.log('✓ Kiosk authenticated via Socket.IO');
             next();
@@ -66,6 +66,30 @@ const setupSocketIO = (io) => {
 
     io.on('connection', (socket) => {
         console.log(`✓ Kiosk display connected: ${socket.id}`);
+
+        // Handle device room subscription
+        socket.on('join-device-room', (deviceId) => {
+            if (!deviceId) {
+                console.log(`✗ Invalid device room join attempt from ${socket.id}`);
+                return;
+            }
+
+            // Leave all previous rooms except default socket room
+            const rooms = Array.from(socket.rooms);
+            rooms.forEach((room) => {
+                if (room !== socket.id) {
+                    socket.leave(room);
+                }
+            });
+
+            // Join new device-specific room
+            const roomName = `device:${deviceId}`;
+            socket.join(roomName);
+            console.log(`✓ Kiosk ${socket.id} joined room: ${roomName}`);
+
+            // Send confirmation to client
+            socket.emit('room-joined', { deviceId, room: roomName });
+        });
 
         // Handle client disconnection
         socket.on('disconnect', () => {
